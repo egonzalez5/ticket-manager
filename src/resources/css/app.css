@@ -1,3 +1,73 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Ticket badges ─────────────────────────────────────────────────── */
+@layer components {
+    .badge {
+        @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1;
+    }
+    .badge-blue    { @apply bg-blue-50    text-blue-700    ring-blue-200/80;   }
+    .badge-amber   { @apply bg-amber-50   text-amber-700   ring-amber-200/80;  }
+    .badge-violet  { @apply bg-violet-50  text-violet-700  ring-violet-200/80; }
+    .badge-emerald { @apply bg-emerald-50 text-emerald-700 ring-emerald-200/80;}
+    .badge-gray    { @apply bg-gray-100   text-gray-500    ring-gray-200/80;   }
+    .badge-red     { @apply bg-red-50     text-red-700     ring-red-200/80;    }
+    .badge-orange  { @apply bg-orange-50  text-orange-600  ring-orange-200/80; }
+}
+
+/* ── PrimeVue DataTable — Linear style (scoped to .tm-table) ───────── */
+.tm-table .p-datatable { border: none !important; box-shadow: none !important; }
+
+.tm-table .p-datatable-table th {
+    background-color: rgb(249 250 251 / 0.85) !important;
+    padding: 11px 16px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.055em !important;
+    color: #9ca3af !important;
+    border-bottom: 1px solid rgb(229 231 235 / 0.8) !important;
+    border-top: none !important; border-left: none !important; border-right: none !important;
+}
+
+.tm-table .p-datatable-table tbody tr {
+    border-bottom: 1px solid #f3f4f6 !important;
+    cursor: pointer !important;
+    transition: background-color 0.1s !important;
+}
+.tm-table .p-datatable-table tbody tr:hover   { background-color: rgb(249 250 251 / 0.9) !important; }
+.tm-table .p-datatable-table tbody tr:last-child { border-bottom: none !important; }
+.tm-table .p-datatable-table td {
+    padding: 11px 16px !important;
+    border: none !important;
+    vertical-align: middle !important;
+}
+
+.tm-table .p-paginator {
+    border-top: 1px solid rgb(229 231 235 / 0.8) !important;
+    background: #ffffff !important;
+    padding: 10px 14px !important;
+    border-radius: 0 0 0.75rem 0.75rem !important;
+}
+.tm-table .p-paginator-page.p-highlight {
+    background: #111827 !important;
+    color: #fff !important;
+    border-radius: 6px !important;
+}
+.tm-table .p-paginator-page,
+.tm-table .p-paginator-first,
+.tm-table .p-paginator-last,
+.tm-table .p-paginator-prev,
+.tm-table .p-paginator-next {
+    min-width: 32px !important;
+    height: 32px !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+}
+
+/* Loading skeleton row */
+.tm-table .p-datatable-loading-overlay {
+    background: rgb(255 255 255 / 0.75) !important;
+    backdrop-filter: blur(2px) !important;
+}
