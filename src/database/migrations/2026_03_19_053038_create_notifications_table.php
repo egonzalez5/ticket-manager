@@ -19,9 +19,11 @@ return new class extends Migration
             $table->string('type');
             $table->text('message');
 
-            $table->boolean('read')->default(false);
+            $table->timestamp('read_at')->nullable();
 
             $table->timestamps();
+
+            $table->index('user_id');
         });
     }
 

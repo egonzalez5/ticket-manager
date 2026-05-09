@@ -17,10 +17,15 @@ return new class extends Migration
             $table->foreignId('ticket_id')->constrained('tickets')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users');
 
-            $table->integer('rating'); // 1 a 5
+            $table->tinyInteger('rating');
             $table->text('comment')->nullable();
 
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->unique(['ticket_id', 'user_id']);
+            $table->index('ticket_id');
+            $table->index('user_id');
         });
     }
 

@@ -20,6 +20,10 @@ return new class extends Migration
             $table->text('message');
 
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('ticket_id');
+            $table->index('user_id');
         });
     }
 

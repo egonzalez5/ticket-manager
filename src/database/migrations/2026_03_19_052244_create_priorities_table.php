@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->integer('level'); // 1 baja, 2 media, 3 alta
+            $table->boolean('active')->default(true);
             $table->timestamps();
         });
     }

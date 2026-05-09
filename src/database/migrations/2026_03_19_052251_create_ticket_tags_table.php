@@ -18,6 +18,10 @@ return new class extends Migration
             $table->foreignId('tag_id')->constrained('tags')->cascadeOnDelete();
 
             $table->timestamps();
+
+            $table->unique(['ticket_id', 'tag_id']);
+            $table->index('ticket_id');
+            $table->index('tag_id');
         });
     }
 

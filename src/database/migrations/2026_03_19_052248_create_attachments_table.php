@@ -16,10 +16,17 @@ return new class extends Migration
 
             $table->foreignId('ticket_id')->nullable()->constrained('tickets')->cascadeOnDelete();
             $table->foreignId('message_id')->nullable()->constrained('ticket_messages')->cascadeOnDelete();
-        
+
+            $table->string('file_name');
             $table->string('file_path');
-            
+            $table->string('mime_type')->nullable();
+            $table->unsignedBigInteger('file_size')->nullable();
+
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('ticket_id');
+            $table->index('message_id');
         });
     }
 

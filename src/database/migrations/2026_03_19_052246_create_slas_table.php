@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->integer('response_time'); // minutos
             $table->integer('resolution_time'); // minutos
+            $table->boolean('active')->default(true);
             $table->timestamps();
         });
     }
