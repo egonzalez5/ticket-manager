@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(///wsl.localhost/Ubuntu-22.04/home/eduardo/projects/ticket-manager/src/app/**)",
+      "Read(//mnt/wsl/Ubuntu-22.04/home/eduardo/projects/ticket-manager/src/app/**)"
+    ]
+  }
+}

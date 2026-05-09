@@ -82,4 +82,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(Notification::class);
     }
+
+    public function isAdmin(): bool
+    {
+        return $this->role?->slug === 'admin';
+    }
+
+    public function isAgent(): bool
+    {
+        return $this->role?->slug === 'agent';
+    }
+
+    public function isUser(): bool
+    {
+        return $this->role?->slug === 'user';
+    }
 }

@@ -2,118 +2,95 @@
 
 namespace App\Http\Controllers;
 
+use App\Filters\TicketFilter;
+use App\Http\Resources\TicketCollection;
+use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
-use App\Models\Sla;
 use App\Http\Requests\TicketStoreRequest;
 use App\Http\Requests\TicketUpdateRequest;
-use App\Services\Tickets\TicketSlaService;
-use Illuminate\Support\Facades\DB;
+use App\Services\Tickets\TicketService;
+use Illuminate\Http\Request;
 
 class TicketController extends Controller
 {
     public function __construct(
-        private readonly TicketSlaService $slaService
+        private readonly TicketService $ticketService
     ) {}
 
-    // LISTAR
-    public function index()
+    public function index(Request $request)
     {
-        $tickets = Ticket::with([
+        $this->authorize('viewAny', Ticket::class);
+
+        $user    = $request->user();
+        $perPage = min($request->integer('per_page', 15), 100);
+
+        $tickets = TicketFilter::apply($request, Ticket::query())
+            ->with(['user', 'assignedUser', 'category', 'priority', 'status', 'tags'])
+            ->when(!$user->isAdmin() && !$user->isAgent(), fn($q) => $q->where('user_id', $user->id))
+            ->latest()
+            ->paginate($perPage);
+
+        return new TicketCollection($tickets);
+    }
+
+    public function store(TicketStoreRequest $request)
+    {
+        $this->authorize('create', Ticket::class);
+
+        $ticket = $this->ticketService->create($request->validated(), $request->user()->id);
+
+        return TicketResource::make($ticket)->response()->setStatusCode(201);
+    }
+
+    public function show(Request $request, $id)
+    {
+        $ticket = Ticket::findOrFail($id);
+
+        $this->authorize('view', $ticket);
+
+        $user = $request->user();
+
+        $ticket->load([
             'user',
             'assignedUser',
             'category',
             'priority',
             'status',
-            'tags'
-        ])->latest()->get();
-
-        return response()->json($tickets);
-    }
-
-    // CREAR
-    public function store(TicketStoreRequest $request)
-    {
-        $validated = $request->validated();
-
-        // SLA (si te lo pasan desde UI/API)
-        $sla = !empty($validated['sla_id']) ? Sla::find($validated['sla_id']) : null;
-        $dueDate = $this->slaService->calculateDueDate($sla);
-
-        $ticket = DB::transaction(function () use ($request, $validated, $sla, $dueDate) {
-            $ticket = Ticket::create([
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'user_id' => $request->user()->id,
-                'category_id' => $validated['category_id'],
-                'priority_id' => $validated['priority_id'],
-                'status_id' => 1, // Open
-                'sla_id' => $sla?->id,
-                'due_date' => $dueDate,
-            ]);
-
-            // TAGS
-            if (!empty($validated['tags'])) {
-                $ticket->tags()->sync($validated['tags']);
-            }
-
-            return $ticket;
-        });
-
-        return response()->json($ticket, 201);
-    }
-
-    // VER DETALLE
-    public function show($id)
-    {
-        $ticket = Ticket::with([
-            'user',
-            'assignedUser',
-            'messages.user',
-            'attachments',
+            'sla',
             'tags',
-            'history'
-        ])->findOrFail($id);
+            'messages' => fn($q) => $q
+                ->with(['user', 'attachments'])
+                ->when(
+                    !$user->isAdmin() && !$user->isAgent(),
+                    fn($q) => $q->where('is_internal', false)
+                ),
+            'attachments',
+            'history.user',
+            'ratings',
+        ]);
 
-        return response()->json($ticket);
+        return TicketResource::make($ticket);
     }
 
-    // ACTUALIZAR
     public function update(TicketUpdateRequest $request, $id)
     {
         $ticket = Ticket::findOrFail($id);
 
-        $validated = $request->validated();
+        $this->authorize('update', $ticket);
 
-        // TAGS (opcional)
-        $tags = $validated['tags'] ?? null;
-        unset($validated['tags']);
+        $ticket = $this->ticketService->update($ticket, $request->validated(), $request->user()->id);
 
-        // SLA + due_date: si la UI/API envía `sla_id` actualizamos el cálculo.
-        if (array_key_exists('sla_id', $validated)) {
-            $sla = !empty($validated['sla_id']) ? Sla::find($validated['sla_id']) : null;
-            $validated['due_date'] = $this->slaService->calculateDueDate(
-                $sla,
-                $ticket->created_at
-            );
-        }
-
-        $ticket->update($validated);
-
-        if (!is_null($tags)) {
-            $ticket->tags()->sync($tags ?? []);
-        }
-
-        return response()->json($ticket);
+        return TicketResource::make($ticket);
     }
 
-    // ELIMINAR
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $ticket = Ticket::findOrFail($id);
-        $ticket->delete();
 
-        return response()->json([
-            'message' => 'Ticket eliminado correctamente'
-        ]);
+        $this->authorize('delete', $ticket);
+
+        $this->ticketService->delete($ticket, $request->user()->id);
+
+        return response()->json(['message' => 'Ticket eliminado correctamente']);
     }
 }

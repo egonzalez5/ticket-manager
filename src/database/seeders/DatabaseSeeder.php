@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             SlaSeeder::class,
             TagsSeeder::class,
             UserSeeder::class,
+            TicketSeeder::class,
         ]);
     }
 }

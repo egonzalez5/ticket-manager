@@ -14,11 +14,11 @@ class TicketStatusSeeder extends Seeder
     public function run(): void
     {
         DB::table('ticket_statuses')->insert([
-            ['name' => 'Open'],
-            ['name' => 'In Progress'],
-            ['name' => 'Pending'],
-            ['name' => 'Resolved'],
-            ['name' => 'Closed'],
+            ['name' => 'Open',        'slug' => 'open'],
+            ['name' => 'In Progress', 'slug' => 'in_progress'],
+            ['name' => 'Pending',     'slug' => 'pending'],
+            ['name' => 'Resolved',    'slug' => 'resolved'],
+            ['name' => 'Closed',      'slug' => 'closed'],
         ]);
     }
 }

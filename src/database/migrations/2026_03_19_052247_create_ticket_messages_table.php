@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users');
 
             $table->text('message');
+            $table->boolean('is_internal')->default(false);
 
             $table->timestamps();
             $table->softDeletes();
