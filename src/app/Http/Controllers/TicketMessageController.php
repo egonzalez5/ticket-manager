@@ -28,9 +28,9 @@ class TicketMessageController extends Controller
             $data['is_internal'] = false;
         }
 
-        $message = $this->service->addMessage($ticket, $data, $request->user()->id);
+        $this->service->addMessage($ticket, $data, $request->user()->id);
 
-        return TicketMessageResource::make($message)->response()->setStatusCode(201);
+        return redirect()->route('tickets.show', $ticket->id);
     }
 
     public function destroy(Ticket $ticket, TicketMessage $message)
@@ -46,9 +46,9 @@ class TicketMessageController extends Controller
     {
         $this->authorize('create', [Attachment::class, $ticket]);
 
-        $attachment = $this->service->addAttachmentToTicket($ticket, $request->file('file'));
+        $this->service->addAttachmentToTicket($ticket, $request->file('file'));
 
-        return AttachmentResource::make($attachment)->response()->setStatusCode(201);
+        return redirect()->route('tickets.show', $ticket->id);
     }
 
     public function destroyAttachment(Attachment $attachment)

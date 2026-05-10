@@ -50,8 +50,12 @@ class TicketResource extends JsonResource
                 'name' => $t->name,
             ])),
 
-            'messages'    => TicketMessageResource::collection($this->whenLoaded('messages')),
-            'attachments' => AttachmentResource::collection($this->whenLoaded('attachments')),
+            'messages' => $this->whenLoaded('messages', fn() =>
+                $this->messages->map(fn($m) => TicketMessageResource::make($m)->resolve())->values()->all()
+            ),
+            'attachments' => $this->whenLoaded('attachments', fn() =>
+                $this->attachments->map(fn($a) => AttachmentResource::make($a)->resolve())->values()->all()
+            ),
 
             'history' => $this->whenLoaded('history', fn() => $this->history->map(fn($h) => [
                 'id'          => $h->id,

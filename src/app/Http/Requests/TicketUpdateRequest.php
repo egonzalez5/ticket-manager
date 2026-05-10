@@ -31,6 +31,8 @@ class TicketUpdateRequest extends FormRequest
             'status_id' => ['sometimes', 'integer', 'exists:ticket_statuses,id'],
             'sla_id' => ['sometimes', 'nullable', 'integer', 'exists:slas,id,active,1'],
 
+            'assigned_to' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+
             // Permite actualizar tags si la UI los envía.
             'tags' => ['sometimes', 'nullable', 'array'],
             'tags.*' => ['integer', 'exists:tags,id'],

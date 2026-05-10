@@ -14,7 +14,9 @@ class TicketMessageResource extends JsonResource
             'message'     => $this->message,
             'is_internal' => $this->is_internal,
             'user'        => $this->whenLoaded('user', fn() => UserResource::make($this->user)),
-            'attachments' => AttachmentResource::collection($this->whenLoaded('attachments')),
+            'attachments' => $this->whenLoaded('attachments', fn() =>
+                $this->attachments->map(fn($a) => AttachmentResource::make($a)->resolve())->values()->all()
+            ),
             'created_at'  => $this->created_at->toISOString(),
         ];
     }
