@@ -6,7 +6,10 @@ use App\Filters\TicketFilter;
 use App\Http\Resources\TicketResource;
 use App\Models\Category;
 use App\Models\Priority;
+use App\Models\Sla;
+use App\Models\Tag;
 use App\Models\Ticket;
+use App\Models\TicketMessage;
 use App\Models\TicketStatus;
 use App\Models\User;
 use App\Http\Requests\TicketStoreRequest;
@@ -47,13 +50,30 @@ class TicketController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        $this->authorize('create', Ticket::class);
+
+        return Inertia::render('Tickets/Create', [
+            'categories' => Category::active()->orderBy('name')->get(['id', 'name']),
+            'priorities' => Priority::active()->orderBy('level', 'desc')->get(['id', 'name', 'level']),
+            'tags'       => Tag::active()->orderBy('name')->get(['id', 'name']),
+            'slas'       => Sla::active()->orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
     public function store(TicketStoreRequest $request)
     {
         $this->authorize('create', Ticket::class);
 
-        $ticket = $this->ticketService->create($request->validated(), $request->user()->id);
+        $ticket = $this->ticketService->create(
+            $request->validated(),
+            $request->user()->id,
+            $request->file('attachments') ?? [],
+        );
 
-        return redirect()->route('tickets.show', $ticket->id);
+        return redirect()->route('tickets.show', $ticket->id)
+            ->with('success', 'Ticket created successfully.');
     }
 
     public function show(Request $request, $id)
@@ -64,7 +84,7 @@ class TicketController extends Controller
 
         $user    = $request->user();
         $isStaff = $user->isAdmin() || $user->isAgent();
-        /* dd($ticket); */
+
         $ticket->load([
             'user',
             'assignedUser',
@@ -75,13 +95,13 @@ class TicketController extends Controller
             'tags',
             'messages' => fn($q) => $q
                 ->with(['user.role', 'attachments'])
-                ->when(!$isStaff, fn($q) => $q->where('is_internal', false))
+                ->when(!$user->can('internalNote', $ticket), fn($q) => $q->where('is_internal', false))
                 ->oldest(),
             'attachments',
             'history.user',
             'ratings',
         ]);
-        /* dd(TicketResource::make($ticket)->resolve()); */
+
         return Inertia::render('Tickets/Show', [
             'ticket'     => TicketResource::make($ticket)->resolve(),
             'statuses'   => TicketStatus::active()->get(['id', 'name', 'slug']),
@@ -92,8 +112,15 @@ class TicketController extends Controller
                     ->orderBy('name')
                     ->get(['id', 'name'])
                 : collect(),
-            'canUpdate'  => $user->can('update', $ticket),
-            'isStaff'    => $isStaff,
+            'can' => [
+                'update'         => $user->can('update',         $ticket),
+                'changeStatus'   => $user->can('changeStatus',   $ticket),
+                'changePriority' => $user->can('changePriority', $ticket),
+                'assign'         => $user->can('assign',          $ticket),
+                'internalNote'   => $user->can('internalNote',   $ticket),
+                'delete'         => $user->can('delete',          $ticket),
+                'reply'          => $user->can('create', [TicketMessage::class, $ticket]),
+            ],
         ]);
     }
 
@@ -103,9 +130,18 @@ class TicketController extends Controller
 
         $this->authorize('update', $ticket);
 
-        $this->ticketService->update($ticket, $request->validated(), $request->user()->id);
+        $user = $request->user();
+        $data = $request->validated();
 
-        return redirect()->route('tickets.show', $ticket->id);
+        // Strip fields the user is not permitted to modify — backend enforces regardless of UI
+        if (!$user->can('changeStatus',   $ticket)) unset($data['status_id']);
+        if (!$user->can('changePriority', $ticket)) unset($data['priority_id']);
+        if (!$user->can('assign',          $ticket)) unset($data['assigned_to']);
+
+        $this->ticketService->update($ticket, $data, $user->id);
+
+        return redirect()->route('tickets.show', $ticket->id)
+            ->with('success', 'Ticket updated successfully.');
     }
 
     public function destroy(Request $request, $id)

@@ -8,8 +8,10 @@
     },
     "dependencies": {
         "@primevue/themes": "^4.3.0",
+        "chart.js": "^4.5.1",
         "primeicons": "^7.0.0",
-        "primevue": "^4.3.0"
+        "primevue": "^4.3.0",
+        "vue-chartjs": "^5.3.3"
     },
     "devDependencies": {
         "@inertiajs/vue3": "^2.0.0",

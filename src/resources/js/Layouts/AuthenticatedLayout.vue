@@ -1,16 +1,22 @@
 <script setup>
-import { ref } from 'vue';
-import AppSidebar from '@/Components/AppSidebar.vue';
-import AppTopbar from '@/Components/AppTopbar.vue';
+import { ref } from 'vue'
+import Toast from 'primevue/toast'
+import AppSidebar from '@/Components/AppSidebar.vue'
+import AppTopbar from '@/Components/AppTopbar.vue'
+import { useFlash } from '@/composables/useFlash'
 
 defineProps({
     title: { type: String, default: '' },
-});
+})
 
-const sidebarOpen = ref(false);
+const sidebarOpen = ref(false)
+
+useFlash()
 </script>
 
 <template>
+    <Toast position="top-right" />
+
     <div class="min-h-screen bg-gray-50 flex">
 
         <!-- Mobile backdrop -->

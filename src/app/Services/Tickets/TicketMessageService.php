@@ -5,16 +5,21 @@ namespace App\Services\Tickets;
 use App\Models\Attachment;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
+use App\Models\User;
+use App\Notifications\NewTicketReplyNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class TicketMessageService
 {
+    public function __construct(
+        private readonly AttachmentService $attachmentService
+    ) {}
+
     public function addMessage(Ticket $ticket, array $data, int $userId): TicketMessage
     {
-        return DB::transaction(function () use ($ticket, $data, $userId) {
+        $message = DB::transaction(function () use ($ticket, $data, $userId) {
             $message = TicketMessage::create([
                 'ticket_id'   => $ticket->id,
                 'user_id'     => $userId,
@@ -23,11 +28,18 @@ class TicketMessageService
             ]);
 
             foreach ($data['attachments'] ?? [] as $file) {
-                $this->storeFile($ticket, $message, $file);
+                $this->attachmentService->store($ticket, $file, $message);
             }
 
             return $message->load(['user', 'attachments']);
         });
+
+        // Internal notes never trigger email notifications
+        if (!($data['is_internal'] ?? false)) {
+            $this->notifyReply($ticket, $message, $userId);
+        }
+
+        return $message;
     }
 
     public function deleteMessage(TicketMessage $message): void
@@ -36,8 +48,7 @@ class TicketMessageService
             $message->load('attachments');
 
             foreach ($message->attachments as $attachment) {
-                $this->removeFile($attachment);
-                $attachment->delete();
+                $this->attachmentService->delete($attachment);
             }
 
             $message->delete();
@@ -46,35 +57,36 @@ class TicketMessageService
 
     public function addAttachmentToTicket(Ticket $ticket, UploadedFile $file): Attachment
     {
-        return $this->storeFile($ticket, null, $file);
+        return $this->attachmentService->store($ticket, $file);
     }
 
     public function deleteAttachment(Attachment $attachment): void
     {
-        $this->removeFile($attachment);
-        $attachment->delete();
+        $this->attachmentService->delete($attachment);
     }
 
-    private function storeFile(Ticket $ticket, ?TicketMessage $message, UploadedFile $file): Attachment
-    {
-        $extension = $file->getClientOriginalExtension();
-        $filename  = Str::uuid() . ($extension ? ".{$extension}" : '');
-        $path      = Storage::putFileAs("attachments/{$ticket->id}", $file, $filename);
+    // ── Notification helper ───────────────────────────────────────────────────
 
-        return Attachment::create([
-            'ticket_id'  => $ticket->id,
-            'message_id' => $message?->id,
-            'file_name'  => $file->getClientOriginalName(),
-            'file_path'  => $path,
-            'mime_type'  => $file->getMimeType(),
-            'file_size'  => $file->getSize(),
-        ]);
-    }
-
-    private function removeFile(Attachment $attachment): void
+    private function notifyReply(Ticket $ticket, TicketMessage $message, int $senderId): void
     {
-        if (Storage::exists($attachment->file_path)) {
-            Storage::delete($attachment->file_path);
+        try {
+            $ticket->loadMissing(['user', 'assignedUser']);
+            $sender = User::find($senderId);
+
+            if (!$sender) return;
+
+            // Staff replied → notify ticket creator
+            // User replied → notify assigned agent
+            $recipient = ($sender->isAdmin() || $sender->isAgent())
+                ? $ticket->user
+                : $ticket->assignedUser;
+
+            // Never notify yourself
+            if ($recipient && $recipient->id !== $senderId) {
+                $recipient->notify(new NewTicketReplyNotification($ticket, $message));
+            }
+        } catch (\Throwable $e) {
+            Log::error("NewTicketReplyNotification failed for ticket {$ticket->id}: {$e->getMessage()}");
         }
     }
 }

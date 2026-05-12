@@ -41,4 +41,25 @@ class TicketPolicy
     {
         return false; // solo admin — resuelto por before()
     }
+
+    public function changeStatus(User $user, Ticket $ticket): bool
+    {
+        return $user->isAgent();
+    }
+
+    public function changePriority(User $user, Ticket $ticket): bool
+    {
+        return $user->isAgent();
+    }
+
+    public function assign(User $user, Ticket $ticket): bool
+    {
+        return $user->isAgent();
+    }
+
+    // Cubre tanto escribir notas internas como verlas
+    public function internalNote(User $user, Ticket $ticket): bool
+    {
+        return $user->isAgent();
+    }
 }

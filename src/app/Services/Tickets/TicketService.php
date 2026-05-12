@@ -7,40 +7,70 @@ use App\Models\Ticket;
 use App\Models\TicketHistory;
 use App\Models\TicketStatus;
 use App\Models\User;
+use App\Notifications\TicketAssignedNotification;
+use App\Notifications\TicketCreatedNotification;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TicketService
 {
     public function __construct(
-        private readonly TicketSlaService $slaService
+        private readonly TicketSlaService   $slaService,
+        private readonly AttachmentService  $attachmentService,
     ) {}
 
-    public function create(array $data, int $creatorId): Ticket
+    /**
+     * @param  array               $data
+     * @param  int                 $creatorId
+     * @param  UploadedFile[]      $files
+     */
+    public function create(array $data, int $creatorId, array $files = []): Ticket
     {
-        return DB::transaction(function () use ($data, $creatorId) {
-            $sla = !empty($data['sla_id']) ? Sla::find($data['sla_id']) : null;
+        $storedPaths = [];
 
-            $ticket = Ticket::create([
-                'title'       => $data['title'],
-                'description' => $data['description'],
-                'user_id'     => $creatorId,
-                'category_id' => $data['category_id'],
-                'priority_id' => $data['priority_id'],
-                'status_id'   => $this->resolveOpenStatus()->id,
-                'sla_id'      => $sla?->id,
-                'due_date'    => $this->slaService->calculateDueDate($sla),
-            ]);
+        try {
+            $ticket = DB::transaction(function () use ($data, $creatorId, $files, &$storedPaths) {
+                $sla = !empty($data['sla_id']) ? Sla::find($data['sla_id']) : null;
 
-            $this->syncTags($ticket, $data['tags'] ?? null);
-            $this->recordHistory($ticket, $creatorId, 'created');
+                $ticket = Ticket::create([
+                    'title'       => $data['title'],
+                    'description' => $data['description'],
+                    'user_id'     => $creatorId,
+                    'category_id' => $data['category_id'],
+                    'priority_id' => $data['priority_id'],
+                    'status_id'   => $this->resolveOpenStatus()->id,
+                    'sla_id'      => $sla?->id,
+                    'due_date'    => $this->slaService->calculateDueDate($sla),
+                ]);
+
+                $this->syncTags($ticket, $data['tags'] ?? null);
+                $this->recordHistory($ticket, $creatorId, 'created');
+
+                foreach ($files as $file) {
+                    $attachment    = $this->attachmentService->store($ticket, $file);
+                    $storedPaths[] = $attachment->file_path;
+                }
+
+                return $ticket;
+            });
+
+            // Dispatch AFTER transaction commits — safe from rollback
+            $this->notifyTicketCreated($ticket, $creatorId);
 
             return $ticket;
-        });
+        } catch (\Throwable $e) {
+            $this->attachmentService->cleanup($storedPaths);
+            throw $e;
+        }
     }
 
     public function update(Ticket $ticket, array $data, int $updaterId): Ticket
     {
-        return DB::transaction(function () use ($ticket, $data, $updaterId) {
+        // Capture inside transaction, dispatch outside
+        $newAssigneeId = null;
+
+        $updated = DB::transaction(function () use ($ticket, $data, $updaterId, &$newAssigneeId) {
             $tags = $data['tags'] ?? null;
             unset($data['tags']);
 
@@ -53,11 +83,23 @@ class TicketService
 
             $ticket->update($data);
 
+            // Capture before fresh() resets wasChanged()
+            if ($ticket->wasChanged('assigned_to') && $ticket->assigned_to) {
+                $newAssigneeId = $ticket->assigned_to;
+            }
+
             $this->recordHistoryForUpdate($ticket, $updaterId, $originalStatusId);
             $this->syncTags($ticket, $tags);
 
             return $ticket->fresh();
         });
+
+        // Dispatch AFTER transaction commits
+        if ($newAssigneeId) {
+            $this->notifyTicketAssigned($updated, $newAssigneeId);
+        }
+
+        return $updated;
     }
 
     public function delete(Ticket $ticket, int $deleterId): void
@@ -67,6 +109,28 @@ class TicketService
             $ticket->delete();
         });
     }
+
+    // ── Notification helpers ──────────────────────────────────────────────────
+
+    private function notifyTicketCreated(Ticket $ticket, int $creatorId): void
+    {
+        try {
+            User::find($creatorId)?->notify(new TicketCreatedNotification($ticket));
+        } catch (\Throwable $e) {
+            Log::error("TicketCreatedNotification failed for ticket {$ticket->id}: {$e->getMessage()}");
+        }
+    }
+
+    private function notifyTicketAssigned(Ticket $ticket, int $assigneeId): void
+    {
+        try {
+            User::find($assigneeId)?->notify(new TicketAssignedNotification($ticket));
+        } catch (\Throwable $e) {
+            Log::error("TicketAssignedNotification failed for ticket {$ticket->id}: {$e->getMessage()}");
+        }
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
 
     private function resolveOpenStatus(): TicketStatus
     {

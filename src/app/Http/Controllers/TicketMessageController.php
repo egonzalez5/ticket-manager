@@ -24,13 +24,14 @@ class TicketMessageController extends Controller
 
         $data = $request->validated();
 
-        if (!$request->user()->isAdmin() && !$request->user()->isAgent()) {
+        if (!$request->user()->can('internalNote', $ticket)) {
             $data['is_internal'] = false;
         }
 
         $this->service->addMessage($ticket, $data, $request->user()->id);
 
-        return redirect()->route('tickets.show', $ticket->id);
+        return redirect()->route('tickets.show', $ticket->id)
+            ->with('success', $data['is_internal'] ?? false ? 'Internal note saved.' : 'Reply sent.');
     }
 
     public function destroy(Ticket $ticket, TicketMessage $message)
@@ -48,7 +49,8 @@ class TicketMessageController extends Controller
 
         $this->service->addAttachmentToTicket($ticket, $request->file('file'));
 
-        return redirect()->route('tickets.show', $ticket->id);
+        return redirect()->route('tickets.show', $ticket->id)
+            ->with('success', 'Attachment uploaded successfully.');
     }
 
     public function destroyAttachment(Attachment $attachment)

@@ -56,6 +56,20 @@ services:
     ports:
       - "6379:6379"
 
+  worker:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: ticket_worker
+    command: ["php", "artisan", "queue:work", "redis", "--sleep=3", "--tries=3", "--max-time=3600"]
+    volumes:
+      - ./src:/var/www
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    user: "${UID}:${GID}"
+
   mailpit:
     image: axllent/mailpit
     container_name: ticket_mailpit

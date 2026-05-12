@@ -24,14 +24,19 @@ class TicketStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['required', 'string'],
-            'category_id' => ['required', 'integer', 'exists:categories,id'],
-            'priority_id' => ['required', 'integer', 'exists:priorities,id'],
-            // Solo permitir SLAs activos (evita inconsistencias con tickets futuros).
-            'sla_id' => ['nullable', 'integer', 'exists:slas,id,active,1'],
-            'tags' => ['nullable', 'array'],
-            'tags.*' => ['integer', 'exists:tags,id'],
+            'title'         => ['required', 'string', 'max:255'],
+            'description'   => ['required', 'string'],
+            'category_id'   => ['required', 'integer', 'exists:categories,id'],
+            'priority_id'   => ['required', 'integer', 'exists:priorities,id'],
+            'sla_id'        => ['nullable', 'integer', 'exists:slas,id,active,1'],
+            'tags'          => ['nullable', 'array'],
+            'tags.*'        => ['integer', 'exists:tags,id'],
+            'attachments'   => ['nullable', 'array', 'max:5'],
+            'attachments.*' => [
+                'file',
+                'max:10240',
+                'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,csv,txt,zip',
+            ],
         ];
     }
 }

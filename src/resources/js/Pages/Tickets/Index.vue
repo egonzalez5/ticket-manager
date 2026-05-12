@@ -109,15 +109,15 @@ const relDate = (iso) => {
                     {{ showingText }}
                 </p>
                 <div v-else />
-                <a
-                    href="/tickets/create"
+                <button
+                    @click="router.visit(route('tickets.create'))"
                     class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gray-900 hover:bg-gray-700 text-white text-[13px] font-medium rounded-lg transition-colors shadow-sm"
                 >
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                     New Ticket
-                </a>
+                </button>
             </div>
 
             <!-- ── Filters ──────────────────────────────────────────── -->

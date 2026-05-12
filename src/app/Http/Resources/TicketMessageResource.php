@@ -13,7 +13,15 @@ class TicketMessageResource extends JsonResource
             'id'          => $this->id,
             'message'     => $this->message,
             'is_internal' => $this->is_internal,
-            'user'        => $this->whenLoaded('user', fn() => UserResource::make($this->user)),
+            'user'        => $this->whenLoaded('user', fn() => $this->user ? [
+                'id'   => $this->user->id,
+                'name' => $this->user->name,
+                'role' => $this->user->relationLoaded('role') && $this->user->role ? [
+                    'id'   => $this->user->role->id,
+                    'name' => $this->user->role->name,
+                    'slug' => $this->user->role->slug,
+                ] : null,
+            ] : null),
             'attachments' => $this->whenLoaded('attachments', fn() =>
                 $this->attachments->map(fn($a) => AttachmentResource::make($a)->resolve())->values()->all()
             ),
