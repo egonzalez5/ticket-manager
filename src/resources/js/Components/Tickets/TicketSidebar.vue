@@ -61,7 +61,7 @@ const onAssigneeChange = () => updateField({ assigned_to: localAssignedTo.value 
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
             <h2 class="text-[13px] font-semibold text-gray-900 mb-4">Details</h2>
             <div class="space-y-4">
-
+           <!--      {{ ticket }} -->
                 <!-- Status -->
                 <div>
                     <label class="block text-[11px] text-gray-400 font-medium mb-1.5">Status</label>
@@ -124,6 +124,9 @@ const onAssigneeChange = () => updateField({ assigned_to: localAssignedTo.value 
 
                 <!-- Assignee -->
                 <div>
+<!--                     {{ can }}
+                    {{ agents }} -->
+                    {{ ticket.assigned_to }}
                     <label class="block text-[11px] text-gray-400 font-medium mb-1.5">Assignee</label>
                     <div class="relative">
                         <select
@@ -136,6 +139,7 @@ const onAssigneeChange = () => updateField({ assigned_to: localAssignedTo.value 
                                    focus:border-indigo-300 transition-colors"
                         >
                             <option value="">Unassigned</option>
+                           
                             <option v-for="a in agents" :key="a.id" :value="a.id">{{ a.name }}</option>
                         </select>
                         <svg v-if="can.assign"

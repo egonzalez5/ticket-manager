@@ -39,11 +39,8 @@ class TicketResource extends JsonResource
                 'resolution_time' => $this->sla->resolution_time,
             ] : null),
 
-            'user'        => $this->whenLoaded('user', fn() => UserResource::make($this->user)),
-            'assigned_to' => $this->whenLoaded('assignedUser', fn() => $this->assignedUser
-                ? UserResource::make($this->assignedUser)
-                : null
-            ),
+            'user'        => $this->whenLoaded('user',         fn() => $this->user         ? UserResource::make($this->user)->resolve()         : null),
+            'assigned_to' => $this->whenLoaded('assignedUser', fn() => $this->assignedUser ? UserResource::make($this->assignedUser)->resolve() : null),
 
             'tags' => $this->whenLoaded('tags', fn() => $this->tags->map(fn($t) => [
                 'id'   => $t->id,
@@ -66,7 +63,7 @@ class TicketResource extends JsonResource
             ])),
 
             'rating' => $this->whenLoaded('ratings', fn() => $this->ratings->isNotEmpty()
-                ? TicketRatingResource::make($this->ratings->first())
+                ? TicketRatingResource::make($this->ratings->first())->resolve()
                 : null
             ),
         ];

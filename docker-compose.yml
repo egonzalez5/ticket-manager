@@ -61,14 +61,32 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: ticket_worker
-    command: ["php", "artisan", "queue:work", "redis", "--sleep=3", "--tries=3", "--max-time=3600"]
+    # queue:work: proceso persistente en memoria (más eficiente que queue:listen)
+    # --sleep=3:      espera 3s cuando no hay jobs (ahorra CPU)
+    # --tries=3:      reintenta 3 veces antes de marcar como fallido
+    # --timeout=60:   mata un job si tarda más de 60s (evita jobs colgados)
+    # --max-time=3600: reinicia el worker cada hora (previene memory leaks)
+    command:
+      - php
+      - artisan
+      - queue:work
+      - redis
+      - --sleep=3
+      - --tries=3
+      - --timeout=60
+      - --max-time=3600
     volumes:
       - ./src:/var/www
     depends_on:
       - postgres
       - redis
     restart: unless-stopped
-    user: "${UID}:${GID}"
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit((new Redis())->connect('redis', 6379) ? 0 : 1);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   mailpit:
     image: axllent/mailpit
