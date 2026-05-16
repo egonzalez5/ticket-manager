@@ -1,6 +1,10 @@
 FROM php:8.3-fpm
 
-RUN apt-get update && apt-get install -y     git     curl     zip     unzip     libpq-dev     libzip-dev     nodejs     npm     autoconf     g++     make     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    git curl zip unzip \
+    libpq-dev libzip-dev \
+    autoconf g++ make \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN docker-php-ext-install     pdo     pdo_pgsql     zip
 

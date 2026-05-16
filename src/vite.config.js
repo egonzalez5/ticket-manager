@@ -4,16 +4,13 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
     server: {
-        host: '0.0.0.0',
+        host: 'localhost',
         port: 5173,
         strictPort: true,
         hmr: {
-            host: 'localhost'
+            host: 'localhost',
+            port: 5173,
         },
-        watch: {
-            usePolling: true,
-            interval: 100
-        }
     },
     plugins: [
         laravel({
