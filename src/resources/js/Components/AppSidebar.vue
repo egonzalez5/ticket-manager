@@ -4,7 +4,8 @@ import { Link, usePage } from '@inertiajs/vue3';
 import SidebarNavItem from '@/Components/SidebarNavItem.vue';
 
 const page = usePage();
-const user = computed(() => page.props.auth.user);
+const user    = computed(() => page.props.auth.user);
+const isAdmin = computed(() => page.props.auth.is_admin);
 
 const isActive = (path, exact = false) => {
     if (exact) return page.url === path;
@@ -67,6 +68,31 @@ const isActive = (path, exact = false) => {
                 </template>
                 My Tickets
             </SidebarNavItem>
+
+            <!-- Settings (admin only) -->
+            <template v-if="isAdmin">
+                <p class="px-3 mt-4 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                    Settings
+                </p>
+
+                <SidebarNavItem href="/settings/users" :active="isActive('/settings/users')">
+                    <template #icon>
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </template>
+                    Users
+                </SidebarNavItem>
+
+                <SidebarNavItem href="/settings/notifications" :active="isActive('/settings/notifications')">
+                    <template #icon>
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                    </template>
+                    Notifications
+                </SidebarNavItem>
+            </template>
 
         </nav>
 
